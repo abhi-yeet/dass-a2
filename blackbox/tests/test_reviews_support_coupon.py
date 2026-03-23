@@ -139,6 +139,36 @@ def test_ticket_status_transition_validation(
     assert invalid_transition.status_code == 400
 
 
+def test_ticket_valid_status_transition_open_to_in_progress(
+    session: requests.Session,
+    base_url: str,
+    user_headers: dict[str, str],
+    timeout_seconds: float,
+) -> None:
+    create = session.post(
+        f"{base_url}/api/v1/support/ticket",
+        headers=user_headers,
+        json={
+            "subject": f"Valid transition {uuid.uuid4().hex[:6]}",
+            "message": "Move from OPEN to IN_PROGRESS.",
+        },
+        timeout=timeout_seconds,
+    )
+    assert create.status_code in (200, 201)
+    payload = create.json()
+    ticket_id = payload.get("ticket_id") if isinstance(payload, dict) else None
+    if not isinstance(ticket_id, int):
+        return
+
+    transition = session.put(
+        f"{base_url}/api/v1/support/tickets/{ticket_id}",
+        headers=user_headers,
+        json={"status": "IN_PROGRESS"},
+        timeout=timeout_seconds,
+    )
+    assert transition.status_code == 200
+
+
 def test_apply_coupon_invalid_code(
     session: requests.Session,
     base_url: str,

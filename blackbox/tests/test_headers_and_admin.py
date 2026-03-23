@@ -75,3 +75,20 @@ def test_user_scoped_endpoint_requires_user_id(
     )
     assert response.status_code == 400
 
+
+@pytest.mark.parametrize("bad_user_id", ["abc", "-1", "0"])
+def test_user_scoped_endpoint_rejects_invalid_user_id_values(
+    session: requests.Session,
+    base_url: str,
+    admin_headers: dict[str, str],
+    timeout_seconds: float,
+    bad_user_id: str,
+) -> None:
+    headers = dict(admin_headers)
+    headers["X-User-ID"] = bad_user_id
+    response = session.get(
+        f"{base_url}/api/v1/profile",
+        headers=headers,
+        timeout=timeout_seconds,
+    )
+    assert response.status_code == 400

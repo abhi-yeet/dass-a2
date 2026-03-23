@@ -144,3 +144,17 @@ def test_orders_and_nonexistent_order(
         timeout=timeout_seconds,
     )
     assert invoice_missing.status_code == 404
+
+
+def test_cancel_nonexistent_order_returns_404(
+    session: requests.Session,
+    base_url: str,
+    user_headers: dict[str, str],
+    timeout_seconds: float,
+) -> None:
+    response = session.post(
+        f"{base_url}/api/v1/orders/9999999/cancel",
+        headers=user_headers,
+        timeout=timeout_seconds,
+    )
+    assert response.status_code == 404

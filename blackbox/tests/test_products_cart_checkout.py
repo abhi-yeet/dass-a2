@@ -170,6 +170,26 @@ def test_cart_add_update_remove_clear_happy_path(
     assert clear.status_code == 200
 
 
+def test_remove_item_not_in_cart_returns_404(
+    session: requests.Session,
+    base_url: str,
+    user_headers: dict[str, str],
+    timeout_seconds: float,
+) -> None:
+    session.delete(
+        f"{base_url}/api/v1/cart/clear",
+        headers=user_headers,
+        timeout=timeout_seconds,
+    )
+    response = session.post(
+        f"{base_url}/api/v1/cart/remove",
+        headers=user_headers,
+        json={"product_id": 9999999},
+        timeout=timeout_seconds,
+    )
+    assert response.status_code == 404
+
+
 @pytest.mark.parametrize("payment_method", ["COD", "WALLET", "CARD"])
 def test_checkout_accepts_valid_payment_methods(
     session: requests.Session,
@@ -220,6 +240,26 @@ def test_checkout_missing_payment_method_rejected(
         f"{base_url}/api/v1/checkout",
         headers=user_headers,
         json={},
+        timeout=timeout_seconds,
+    )
+    assert response.status_code == 400
+
+
+def test_checkout_empty_cart_rejected(
+    session: requests.Session,
+    base_url: str,
+    user_headers: dict[str, str],
+    timeout_seconds: float,
+) -> None:
+    session.delete(
+        f"{base_url}/api/v1/cart/clear",
+        headers=user_headers,
+        timeout=timeout_seconds,
+    )
+    response = session.post(
+        f"{base_url}/api/v1/checkout",
+        headers=user_headers,
+        json={"payment_method": "CARD"},
         timeout=timeout_seconds,
     )
     assert response.status_code == 400

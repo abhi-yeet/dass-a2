@@ -164,3 +164,70 @@ def test_update_address_forbidden_fields_rejected(
         headers=user_headers,
         timeout=timeout_seconds,
     )
+
+
+def test_delete_nonexistent_address_returns_404(
+    session: requests.Session,
+    base_url: str,
+    user_headers: dict[str, str],
+    timeout_seconds: float,
+) -> None:
+    response = session.delete(
+        f"{base_url}/api/v1/addresses/9999999",
+        headers=user_headers,
+        timeout=timeout_seconds,
+    )
+    assert response.status_code == 404
+
+
+def test_address_update_response_contains_new_street(
+    session: requests.Session,
+    base_url: str,
+    user_headers: dict[str, str],
+    timeout_seconds: float,
+) -> None:
+    payload = {
+        "label": "OTHER",
+        "street": f"Initial Street {uuid.uuid4().hex[:8]}",
+        "city": "Hyderabad",
+        "pincode": "500001",
+        "is_default": False,
+    }
+    create = session.post(
+        f"{base_url}/api/v1/addresses",
+        headers=user_headers,
+        json=payload,
+        timeout=timeout_seconds,
+    )
+    assert create.status_code in (200, 201)
+    created = create.json()
+    address = (
+        created.get("address")
+        if isinstance(created, dict) and isinstance(created.get("address"), dict)
+        else created
+    )
+    address_id = address.get("address_id") if isinstance(address, dict) else None
+    assert isinstance(address_id, int)
+
+    new_street = f"Updated Street {uuid.uuid4().hex[:8]}"
+    update = session.put(
+        f"{base_url}/api/v1/addresses/{address_id}",
+        headers=user_headers,
+        json={"street": new_street, "is_default": False},
+        timeout=timeout_seconds,
+    )
+    assert update.status_code == 200
+    body = update.json()
+    updated = (
+        body.get("address")
+        if isinstance(body, dict) and isinstance(body.get("address"), dict)
+        else body
+    )
+    if isinstance(updated, dict):
+        assert updated.get("street") == new_street
+
+    session.delete(
+        f"{base_url}/api/v1/addresses/{address_id}",
+        headers=user_headers,
+        timeout=timeout_seconds,
+    )
